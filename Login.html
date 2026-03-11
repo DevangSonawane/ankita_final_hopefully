@@ -66,14 +66,33 @@
       function login() {
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
+        const currentHost = window.location.hostname || "localhost";
+        const apiBaseUrl = `http://${currentHost}:3000`;
 
-        fetch("http://localhost:3000/login", {
+        fetch(`${apiBaseUrl}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ username, password }),
         })
-          .then((res) => res.json())
+          .then(async (res) => {
+            const text = await res.text();
+            let data = {};
+
+            if (text) {
+              try {
+                data = JSON.parse(text);
+              } catch (e) {
+                throw new Error(text);
+              }
+            }
+
+            if (!res.ok) {
+              throw new Error(data.error || data.message || `HTTP ${res.status}`);
+            }
+
+            return data;
+          })
           .then((data) => {
              console.log("Login response:", data);
 if (data.role === "admin") {
@@ -102,8 +121,17 @@ else {
               showPopup("Invalid credentials ❌");
             }
           })
-          .catch(() => {
-            showPopup("Server error ❌");
+          .catch((err) => {
+            const message = err && err.message ? err.message : "Server error";
+            if (
+              message === "Failed to fetch" ||
+              message === "Load failed" ||
+              message.includes("NetworkError")
+            ) {
+              showPopup(`Cannot connect to server. Start backend on ${apiBaseUrl} ❌`);
+              return;
+            }
+            showPopup(`${message} ❌`);
           });
       }
     </script>

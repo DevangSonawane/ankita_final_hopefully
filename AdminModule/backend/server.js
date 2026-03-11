@@ -159,12 +159,40 @@ Post Pilot Team`,
 
 /* ===== MIDDLEWARES ===== */
 
-app.use(cors({
-  origin: ["http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:3000"],   // Allow both standard frontend ports
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+const allowedOrigins = new Set([
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "http://localhost:3000",
+]);
+
+const localhostOriginRegex = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const privateNetworkOriginRegex =
+  /^http:\/\/(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server requests (no Origin) and local frontend ports.
+      if (!origin) return callback(null, true);
+      // Allow local HTML opened directly from filesystem (Origin: null).
+      if (origin === "null") return callback(null, true);
+
+      if (
+        allowedOrigins.has(origin) ||
+        localhostOriginRegex.test(origin) ||
+        privateNetworkOriginRegex.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      // Don't throw; simply reject CORS for unknown origins.
+      return callback(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
 /* ===== SESSION MIDDLEWARE (CORRECT PLACE) ===== */
@@ -387,7 +415,7 @@ app.post("/login", (req, res) => {
   // ADMIN CHECK
   if (username === "admin2026" && password === "admin2026") {
     req.session.role = "admin";
-    return res.json({ role: "admin" });
+    return res.json({ role: "admin", name: "Admin" });
   }
 
   // EMPLOYEE CHECK
@@ -890,6 +918,6 @@ db.query(sql, [customerName], (err, result) => {
 
 /* ================= SERVER ================= */
 
-app.listen(3000, () => {
-  console.log("🚀 Server running on port 3000");
+app.listen(3000, "0.0.0.0", () => {
+  console.log("🚀 Server running on 0.0.0.0:3000");
 }); 

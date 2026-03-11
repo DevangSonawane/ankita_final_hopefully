@@ -214,7 +214,8 @@
     </div>
 
     <script>
-      const API = "http://localhost:3000";
+      const currentHost = window.location.hostname || "localhost";
+      const API = `http://${currentHost}:3000`;
       const params = new URLSearchParams(window.location.search);
       const custId = params.get("custId");
       const custName = decodeURIComponent(params.get("custName") || "");
@@ -265,9 +266,10 @@
               </tr>
             `;
           });
-        } catch {
+        } catch (err) {
+          console.error("Load content failed:", err);
           table.innerHTML =
-            "<tr><td colspan='5' style='text-align:center;'>Unable to load content</td></tr>";
+            "<tr><td colspan='5' style='text-align:center;'>Unable to load content (server not reachable)</td></tr>";
         }
       }
 
